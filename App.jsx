@@ -25,9 +25,37 @@ function Logo() {
 
 function App() {
   const [submitted, setSubmitted] = useState(false)
-  function handleSubmit(event) {
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+
+  async function handleSubmit(event) {
     event.preventDefault()
-    setSubmitted(true)
+    if (submitting) return
+
+    const values = new FormData(event.currentTarget)
+    setSubmitting(true)
+    setSubmitError('')
+
+    try {
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: values.get('name'),
+          company: values.get('company'),
+          phone: values.get('phone'),
+          bottleneck: values.get('bottleneck'),
+          website: values.get('website'),
+        }),
+      })
+
+      if (!response.ok) throw new Error('Lead submission failed')
+      setSubmitted(true)
+    } catch {
+      setSubmitError('We couldn’t save your enquiry. Please try again shortly.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -90,11 +118,13 @@ function App() {
             <div className="contact-copy"><div className="eyebrow contact-eyebrow"><span className="status-dot" /> YOUR NEXT STEP</div><h2>Let’s find your<br /><span className="serif-word">easier.</span></h2><p>Tell us what’s slowing your team down. We’ll take a look and share a few ideas—no pressure, just a useful conversation.</p><div className="contact-promise"><span><Check size={14} /></span> Free 20-minute workflow audit</div><div className="contact-promise"><span><Check size={14} /></span> A real person gets back to you</div><div className="contact-orb"><Sparkles size={22} /></div></div>
             <div className="form-wrap">{submitted ? <div className="success-state" role="status"><span className="success-icon"><Check size={27} /></span><div className="eyebrow eyebrow-muted">MESSAGE RECEIVED</div><h3>Thanks! We will reach out via WhatsApp shortly.</h3><p>We’re looking forward to learning how your team works.</p><button className="reset-link" onClick={() => setSubmitted(false)}>Send another enquiry <ArrowRight size={15} /></button></div> : <form onSubmit={handleSubmit}>
               <div className="form-heading"><span>START A CONVERSATION</span><small>* Required fields</small></div>
+              <div className="honeypot" aria-hidden="true"><label>Leave this field empty<input name="website" tabIndex="-1" autoComplete="off" /></label></div>
               <label>Full name <em>*</em><input name="name" type="text" placeholder="e.g. Priya Sharma" autoComplete="name" required /></label>
               <label>Company name <em>*</em><input name="company" type="text" placeholder="Where do you work?" autoComplete="organization" required /></label>
               <label>WhatsApp number <em>*</em><div className="phone-input"><span>+91 <ChevronDown size={13} /></span><input name="phone" type="tel" placeholder="98765 43210" autoComplete="tel" pattern="[0-9+()\s-]{8,16}" title="Enter a valid phone number" required /></div></label>
               <label>What’s your primary bottleneck? <em>*</em><select name="bottleneck" defaultValue="" required><option value="" disabled>Choose what takes up your time</option><option>Missed or slow lead follow-ups</option><option>Manual CRM and pipeline updates</option><option>Document or invoice processing</option><option>Scheduling and follow-up coordination</option><option>Something else</option></select></label>
-              <button className="button button-dark submit-button" type="submit">Request my free audit <ArrowRight size={17} /></button>
+              <button className="button button-dark submit-button" type="submit" disabled={submitting}>{submitting ? 'Sending…' : 'Request my free audit'} <ArrowRight size={17} /></button>
+              {submitError && <p className="form-error" role="alert">{submitError}</p>}
               <p className="form-privacy">Your details stay private. No spam, ever.</p>
             </form>}</div>
           </div>
